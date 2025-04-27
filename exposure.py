@@ -72,6 +72,7 @@ import pandas as pd
 import random
 import os
 from LSTM_Model import CharLSTM
+import platform
 
 """
 Log Perplexity:
@@ -95,14 +96,24 @@ class ExposureMetric:
         self.model = None
     
     def train_LLM(self):
-
-        if torch.cuda.is_available():
+        
+        if platform.system() == "Darwin":
+            if torch.backends.mps.is_available():
+                device = torch.device("mps")
+            else:
+                device = torch.device("cpu")
+                print("MPS device not available, using CPU instead.")
+        elif torch.cuda.is_available():
             device = torch.device("cuda")
-            print(f"There are {torch.cuda.device_count()} GPU(s) available.")
-            print(f"GPU device name: {torch.cuda.get_device_name(0)}")
         else:
             device = torch.device("cpu")
-            print("No GPU available, training on CPU.")
+            print("CUDA device not available, using CPU instead.")
+        
+        print(f"Verwendetes Device: {device}")
+        
+        # Deine Tensor-Operationen:
+        tensor = torch.randn(10, 10).to(device)
+        print(tensor)
 
         # Now, 'device' variable holds either 'cuda' or 'cpu'
 
