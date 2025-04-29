@@ -73,6 +73,7 @@ import random
 import os
 from LSTM_Model import CharLSTM
 import platform
+import math
 
 """
 Log Perplexity:
@@ -96,7 +97,7 @@ class ExposureMetric:
         self.model = None
     
     def train_LLM(self):
-        
+
         if platform.system() == "Darwin":
             if torch.backends.mps.is_available():
                 device = torch.device("mps")
@@ -110,10 +111,6 @@ class ExposureMetric:
             print("CUDA device not available, using CPU instead.")
         
         print(f"Verwendetes Device: {device}")
-        
-        # Deine Tensor-Operationen:
-        tensor = torch.randn(10, 10).to(device)
-        print(tensor)
 
         # Now, 'device' variable holds either 'cuda' or 'cpu'
 
@@ -215,7 +212,7 @@ class ExposureMetric:
         logits = self.get_logits(sample_sequence)
         print(logits)
         print(f"Logits for sequence '{sample_sequence}': {logits.shape}, {logits}")
-        torch.save(self.model.state_dict(), 'models')
+        torch.save(self.model.state_dict(), '.')
 
         # You can now use these 'logits' for further calculations within
         # the ExposureMetric class or elsewhere.
@@ -247,7 +244,32 @@ class ExposureMetric:
 
             logits = output[-1, :].unsqueeze(0) # Füge die Batch-Dimension wieder hinzu
             return logits[0]
+        
+    #Die logits werden hier mit softmax umgewandelt und das ist die conditional probability von allen zeichen auf grundlage des bsiherigen modells
+    def calculatePerplexity(self, sequence: str, device):
 
+        #goal: calculate 
+        self.model.eval()
+        #Maybe usage of get_logits
+        total_neg_logLikelihood = 0
+        current_LogLikelihood = 0
+        inputs = inputs.to(device) # You can move your input to gpu, torch defaults to cpu
+        
+        hidden = self.model.init_hidden(1)
+
+        with torch.no_grad():
+
+            pred = self.model(inputs, hidden)
+            current_LogLikelihood = self.model.softmax(pred, dim=-1)
+            total_neg_logLikelihood *= -math.log2(current_LogLikelihood)
+
+    def calculateRankList(self):
+
+        pass
+    
+
+#Ablauf für Secret Sharer: LLM trainieren und mit Formate zusätzlich trainieren und dann mit den generierten Tokens aus der erstellten Sequenz dann
+#finetunen und mit den conditional probabilites des llm die perplexity 
 def main():
     # Hier kommt die Hauptlogik deines Programms hin
     exposureMetric = ExposureMetric()
