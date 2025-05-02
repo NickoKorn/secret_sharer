@@ -74,6 +74,8 @@ import os
 from LSTM_Model import CharLSTM
 import platform
 import math
+from canariesFabric import Canaries
+import os
 
 """
 Log Perplexity:
@@ -128,6 +130,7 @@ class ExposureMetric:
             return text.strip()
 
         text = load_ptb_raw_text()
+        print(text)
         chars = sorted(list(set(text)))
         char_to_index = {char: i for i, char in enumerate(chars)}
         index_to_char = {i: char for char, i in char_to_index.items()}
@@ -142,17 +145,22 @@ class ExposureMetric:
         batch_size = 32
         val_fraction = 0.1
 
-        def text_to_sequences(text, char_to_index, seq_length):
-            dataX = []
-            dataY = []
-            for i in range(0, len(text) - seq_length):
-                seq_in = text[i:i + seq_length]
-                seq_out = text[i + seq_length]
-                dataX.append([char_to_index[char] for char in seq_in])
-                dataY.append(char_to_index[seq_out])
+        def text_to_sequences_FastSlicing(text, char_to_index, seq_length):
+
+            #List compehension slicing
+            dataX = [[char_to_index[char] for char in row] for row in [text[i:i+seq_length] for i in range(0, len(text)-seq_length)]]
+            
+            dataY = [char_to_index[text[i+seq_length]] for i in range(0, len(text)-seq_length)]
+            #dataX = [[char_to_index[char] for char in row] for row in dataX]
+            
+            print(dataY[0]),#'\n',print(dataY)
+            print(dataY[1]),#'\n',print(dataY)
+            print(dataY[-1]),#'\n',print(dataY)
+
+            #print(dataX),#'\n',print(dataY)
             return torch.tensor(dataX, dtype=torch.long), torch.tensor(dataY, dtype=torch.long)
 
-        input_seq, target_seq = text_to_sequences(text, char_to_index, seq_length)
+        input_seq, target_seq = text_to_sequences_FastSlicing(text, char_to_index, seq_length)
 
         # Split into training and validation sets
         val_size = int(len(input_seq) * val_fraction)
@@ -212,11 +220,17 @@ class ExposureMetric:
         logits = self.get_logits(sample_sequence)
         print(logits)
         print(f"Logits for sequence '{sample_sequence}': {logits.shape}, {logits}")
-        torch.save(self.model.state_dict(), '.')
+        torch.save(self.model.state_dict(), '/Users/nicko_kornetzky/Desktop/projects/secret_sharer-main/models/charLSTM.pth')
 
         # You can now use these 'logits' for further calculations within
         # the ExposureMetric class or elsewhere.
         # Next step: Augment with the canary sentence and continue training or evaluate.
+
+    def trainWithCanaries():
+        
+        model = CharLSTM()
+        model.load_state_dict(torch.load('/Users/nicko_kornetzky/Desktop/projects/secret_sharer-main/models/charLSTM.pth', weights_only=True))
+        pass
 
     def get_logits(self, input_sequence):
         self.model.eval()  # Set the model to evaluation mode
@@ -224,8 +238,8 @@ class ExposureMetric:
             # Erstelle ein Mapping der eindeutigen Zeichen in der Eingabesequenz zu Indizes
             unique_chars = sorted(list(set(input_sequence)))
             char_to_index_local = {char: i for i, char in enumerate(unique_chars)}
-
             # Konvertiere die Eingabesequenz in numerische Indizes basierend auf dem lokalen Mapping
+
             input_tensor = torch.tensor([[char_to_index_local[char] for char in input_sequence]], dtype=torch.long).to(self.model.fc.weight.device)
 
             hidden = self.model.init_hidden(input_tensor.size(0))
@@ -254,26 +268,33 @@ class ExposureMetric:
         total_neg_logLikelihood = 0
         current_LogLikelihood = 0
         inputs = inputs.to(device) # You can move your input to gpu, torch defaults to cpu
-        
         hidden = self.model.init_hidden(1)
 
         with torch.no_grad():
 
             pred = self.model(inputs, hidden)
-            current_LogLikelihood = self.model.softmax(pred, dim=-1)
-            total_neg_logLikelihood *= -math.log2(current_LogLikelihood)
+            
+            #2 Options: Softmax Conditional Probabilities von rohen unnormalisierten logits 
+            #oder mit der invers korrelierten likelihood aus dem loss
+            #current_LogLikelihood = self.model.softmax(pred, dim=-1)
+            #total_neg_logLikelihood *= -math.log2(current_LogLikelihood)
+            current_LogLikelihood = pred.loss()
+            total_neg_logLikelihood *= current_LogLikelihood
 
     def calculateRankList(self):
 
         pass
     
-
 #Ablauf für Secret Sharer: LLM trainieren und mit Formate zusätzlich trainieren und dann mit den generierten Tokens aus der erstellten Sequenz dann
 #finetunen und mit den conditional probabilites des llm die perplexity 
 def main():
     # Hier kommt die Hauptlogik deines Programms hin
+
     exposureMetric = ExposureMetric()
     exposureMetric.train_LLM()
+    canary = Canaries()
+    canary.randomGenerator()
+    exposureMetric.calculatePerplexity(canary.formats)
 
 if __name__ == "__main__":
     main()
