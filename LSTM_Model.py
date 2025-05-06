@@ -17,7 +17,8 @@ class CharLSTM(nn.Module):
         output = self.fc(output)
         return output, hidden
 
-    def init_hidden(self, batch_size):
+    def init_hidden(self, batch_size, device):
         weight = next(self.parameters())
-        return (weight.new_zeros(self.num_layers, batch_size, self.hidden_units),
-                weight.new_zeros(self.num_layers, batch_size, self.hidden_units))
+        return (weight.new_zeros(self.num_layers, batch_size, self.hidden_units).to(device),
+                weight.new_zeros(self.num_layers, batch_size, self.hidden_units).to(device))
+    
