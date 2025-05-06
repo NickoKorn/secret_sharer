@@ -1,64 +1,6 @@
 """
 Implementations for:
 "The Secret Sharer: Evaluating and Testing Unintended Memorization in Neural Networks"
-
-This class will approximate exposure of different llms and visualize the results
-
-import numpy as np
-from scipy.stats import entropy
-base = 2  # work in units of bits
-qk = np.array([9/10, 1/10])  # biased coin
-H = entropy(qk, base=base)
-print(H)
-H == -np.sum(qk * np.log(qk)) / np.log(base)
-print(H)
-
-Data Classes / Classes and functions
-Log Perplexity:
-Ranks:
-Canaries: 
-Format: 
-Randomnessspace R
-Guessing Entropy:
-
-Grundlage der Metrik: 
-
-Generative Sequence Models
-A generative sequence model is a fundamental architecture
-for common tasks such as language-modeling [4], translation
-[3], dialogue systems, caption generation, optical character
-recognition, and automatic speech recognition, among others.
-For example, consider the task of modeling naturallanguage English text from the space of all possible sequences
-of English words. For this purpose, a generative sequence
-model would assign probabilities to words based on the context in which those words appeared in the empirical distribution of the model’s training data. For example, the model
-might assign the token “lamb” a high probability after seeing
-the sequence of words “Mary had a little”, and the token “the”
-a low probability because—although “the” is a very common
-word—this prefix of words requires a noun to come next, to
-fit the distribution of natural, valid English.
-Formally, generative sequence models are designed to generate a sequence of tokens x1...xn according to an (unknown)
-distribution Pr(x1...xn). Generative sequence models estimate
-this distribution, which can be decomposed through Bayes’
-rule as Pr(x1...xn) = Πn
-i=1Pr(xi
-|x1...xi−1). Each individual
-computation Pr(xi
-|x1...xi−1) represents the probability of token xi occurring at timestep i with previous tokens x1 to xi−1.
-Modern generative sequence models most frequently employ neural networks to estimate each conditional distribution.
-To do this, a neural network is trained (using gradient descent to update the neural-network weights θ) to output the
-conditional probability distribution over output tokens, given
-input tokens x1 to xi−1, that maximizes the likelihood of the
-training-data text corpus. For such models, Pr(xi
-|x1...xi−1)
-is defined as the probability of the token xi as returned by
-evaluating the neural network fθ(x1...xi−1).
-Neural-network generative sequence models most often
-use model architectures that can be naturally evaluated on
-variable-length inputs, such as Recurrent Neural Networks
-(RNNs). RNNs are evaluated using a current token (e.g., word
-or character) and a current state, and output a predicted next
-token as well as an updated state. By processing input tokens
-one at a time, RNNs can thereby process arbitrary-si
 """
 
 import torch
