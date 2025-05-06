@@ -76,6 +76,8 @@ import platform
 import math
 from canariesFabric import Canaries
 import os
+import torch.nn.functional as F
+
 
 """
 Log Perplexity:
@@ -86,15 +88,15 @@ Randomnessspace R
 Guessing Entropy:
 """
 
+#Besser toDo: ExposureMetric als Data class und das training, validieren und testen innerhalb einer pipeline, die einfach 
+
+#@dataclass(unsafe_hash=True)
 class ExposureMetric:
 
     def __init__(self, *args, **kwargs):
 
         self.log_perplexity = None
         self.rankList = None
-        self.canaries = None
-        self.format = None
-        self.randomnessSpaceR = None
         self.guessingEntropy = None
         self.model = None
         self.device = None
@@ -136,29 +138,29 @@ class ExposureMetric:
 
         self.text = load_ptb_raw_text()
         self.text+= ''.join(trainFormat).lower() + ' '
-        #print(self.text)
+        print(self.text)
         #print(type(self.text))
 
         self.chars = sorted(list(set(self.text)))
         self.char_to_index = {char: i for i, char in enumerate(self.chars)}
         self.n_chars = len(self.chars)
-        print('self_chars: ')
-        print(self.n_chars)
+        #print('self_chars: ')
+        #print(self.n_chars)
 
     def text_to_sequences_FastSlicing(self, text, seq_length):
 
-            print(len(text))
+            #print(len(text))
             #List compehension slicing
             dataX = [[self.char_to_index[char] for char in row] for row in [text[i:i+seq_length] for i in range(0, len(text)-seq_length)]]     
             dataY = [self.char_to_index[text[i+seq_length]] for i in range(0, len(text)-seq_length)]
             #dataX = [[char_to_index[char] for char in row] for row in dataX]
             
-            print(dataY[0]),#'\n',print(dataY)
-            print(dataY[1]),#'\n',print(dataY)
-            print(dataY[-1]),#'\n',print(dataY)
+            #print(dataY[0]),#'\n',print(dataY)
+            #print(dataY[1]),#'\n',print(dataY)
+            #print(dataX[-2:]),#'\n',print(dataY)
 
-            print('DataX: ')
-            print(dataX)#'\n',print(dataY)
+            #print('DataX: ')
+            #print(dataX)#'\n',print(dataY)
             return torch.tensor(dataX, dtype=torch.long), torch.tensor(dataY, dtype=torch.long)
 
     def train_LLM(self, trainFormat: str):
@@ -166,7 +168,7 @@ class ExposureMetric:
         self.chooseDevice()
         self.loadPTBDataset(trainFormat)
         index_to_char = {i: char for char, i in self.char_to_index.items()}
-        print(self.n_chars)
+        #print(self.n_chars)
 
         seq_length = 5
         embedding_dim = 50
@@ -196,35 +198,29 @@ class ExposureMetric:
             self.model.train()
             optimizer.zero_grad()
             n_batches = len(train_input) // batch_size
+            #print(n_batches)
             total_loss = 0
 
             # Shuffle the training data
             permutation = torch.randperm(train_input.size(0))
             train_input_shuffled = train_input[permutation]
-            print('Traininput')
-            print(train_input)
-            print(len(train_input))
-            print(train_target)
-            print(train_target)
-            print(len(train_target))
+            #print('Traininput')
+            #print(train_input)
+            #print(len(train_input))
+            #print(train_target)
+            #print(train_target)
+            #print(len(train_target))
 
             train_target_shuffled = train_target[permutation]
-            print('train_target_shuffled size: ')
-            print(len(train_target_shuffled))
-
+            #print('train_target_shuffled size: ')
+            #print(len(train_target_shuffled))
             for i in range(n_batches):
 
-                #With Padding
+                batch = train_input[i * batch_size:(i + 1) * batch_size]
                 batch_in = train_input_shuffled[i * batch_size:(i + 1) * batch_size]
                 batch_out = train_target_shuffled[i * batch_size:(i + 1) * batch_size]
-                if(len(batch_in)):
-                    pass
-                print('Batch_Size: ')
-                print(len(batch_in))
-                print(batch_in)
-                print('Tesnor Size')
-                print(batch_in.size())
-                hidden = self.model.init_hidden(batch_in.size(0)) # Initialize hidden state for the batch
+
+                hidden = self.model.init_hidden(batch_in.size(0), self.device) # Initialize hidden state for the batch
                 output, hidden = self.model(batch_in, hidden)
                 loss = criterion(output, batch_out)
                 loss.backward()
@@ -240,7 +236,7 @@ class ExposureMetric:
                 for i in range(val_batches):
                     batch_in_val = val_input[i * batch_size:(i + 1) * batch_size]
                     batch_out_val = val_target[i * batch_size:(i + 1) * batch_size]
-                    hidden_val = self.model.init_hidden(batch_in_val.size(0))
+                    hidden_val = self.model.init_hidden(batch_in_val.size(0), self.device)
                     output_val, _ = self.model(batch_in_val, hidden_val)
                     loss_val = criterion(output_val, batch_out_val)
                     val_loss += loss_val.item()
@@ -255,11 +251,9 @@ class ExposureMetric:
         logits = self.get_logits(sample_sequence)
         print(logits)
         print(f"Logits for sequence '{sample_sequence}': {logits.shape}, {logits}")
-        torch.save(self.model.state_dict(), '/Users/nicko_kornetzky/Desktop/projects/secret_sharer-main/models/charLSTM.pth')
-
-        # You can now use these 'logits' for further calculations within
-        # the ExposureMetric class or elsewhere.
-        # Next step: Augment with the canary sentence and continue training or evaluate.
+        
+        #Linux:
+        torch.save(self.model.state_dict(), 'models/charLSTM.pth')
 
     def trainWithCanaries(self):
         
@@ -277,7 +271,7 @@ class ExposureMetric:
 
             input_tensor = torch.tensor([[char_to_index_local[char] for char in input_sequence]], dtype=torch.long).to(self.model.fc.weight.device)
 
-            hidden = self.model.init_hidden(input_tensor.size(0))
+            hidden = self.model.init_hidden(input_tensor.size(0), self.device)
             output, _ = self.model(input_tensor, hidden)
             # 'output' hat die Form (batch_size, seq_length, output_size)
             # Wir wollen die Logits für das nächste Zeichen *nach* der Sequenz,
@@ -295,8 +289,9 @@ class ExposureMetric:
             return logits[0]
         
     #Die logits werden hier mit softmax umgewandelt und das ist die conditional probability von allen zeichen auf grundlage des bsiherigen modells
-    def calculatePerplexity(self, trainFormat: str):
+    def calculatePerplexity(self, trainFormat: str, testFormats: list):
 
+        print(trainFormat)
         self.chooseDevice()
         self.loadPTBDataset(trainFormat)
 
@@ -306,60 +301,114 @@ class ExposureMetric:
         hidden_units = 200
         n_layers = 2
 
-        print(trainFormat)
+        print(testFormats)
         if self.model == None:
             
             self.model = CharLSTM(self.n_chars, embedding_dim, hidden_units, n_layers, self.n_chars)
-            hidden = self.model.init_hidden(1)
-            self.model.load_state_dict(torch.load('/Users/nicko_kornetzky/Desktop/projects/secret_sharer-main/models/charLSTM.pth',              weights_only=True))
+            hidden = self.model.init_hidden(26, self.device)
+            self.model.load_state_dict(torch.load('models/charLSTM.pth', weights_only=True))
             self.model.to(self.device)
             print('Ist auf dem Device')
 
         #goal: calculate 
-        batch_size = 32
+        batch_size = 26
         self.model.eval()
+        #26 Batches
+
+        sequencesX = []
+        sequencesY = []
         sequenceX, sequenceY = self.text_to_sequences_FastSlicing(trainFormat.lower(), seq_length=5)
+        for i in range(len(testFormats)):
+
+            print(i)
+            print(testFormats[i])
+            sequenceXTest, sequenceYTest = self.text_to_sequences_FastSlicing(testFormats[i].lower(), seq_length=5)
+            sequencesX.append(sequenceXTest)
+            sequencesY.append(sequenceYTest)
+
+        print('sequenceXList:')
+        print(sequencesX)
+        print('sequenceYList:')
+        print(sequencesY)
         #Es braucht ein Batch, das das Trainigsformat ein mal testet und dann noch auch alle anderen, um die 
         #Log-Perplexity auszurechnen
         #Beispiel vom Trainigsformat, wenn nur The random number is: 281265017 in einem Btach ist:
         #Auffüllen mit Nullen den Rest
-        zeroFillers = 32-len(trainFormat)
         i=0
         batch_in = sequenceX[i * batch_size:(i + 1) * batch_size]
-        print('batch_in: ')
+        print(sequenceX)
         print(batch_in)
-        print(type(batch_in))
-        print(len(batch_in))
-        print('Tesnor Size')
-        print(batch_in.size())
+        print(sequenceY)
+        #print('batch_in: ')
+        #print(batch_in)
+        #print(type(batch_in))
+        #print(len(batch_in))
+        #print('Tesnor Size')
+        #print(batch_in.size())
 
         #Training batch_in: (32,10), Test Batch_in: (21,10), Padder: (11, 10)
-        padder = torch.zeros(11, 10)
+        padder = torch.zeros(batch_size-len(batch_in), 5)
+        #print(padder.size())
         paddedTest = torch.cat([batch_in,padder], dim = 0) # Choose your desired dim
         
-        print('paddedTest:')
-        print(paddedTest)
-        print(paddedTest.size())
+        #print('paddedTest:')
+        #print(paddedTest)
+        #print(paddedTest.size())
         batch_out = sequenceY[i * batch_size:(i + 1) * batch_size]
         #Maybe usage of get_logits
-        total_neg_logLikelihood = 0
+        total_neg_logLikelihood = 1
         current_LogLikelihood = 0
         #sequence = [self.char_to_index[char.lower()] for char in trainFormat]
         #print(sequence)
-        batch_in.to(self.device) # You can move your input to gpu, torch defaults to cpu
+        batch_in.to(self.device) 
+        sequenceX.to(self.device) 
+        sequenceY.to(self.device)
+
+        paddedTest = paddedTest.long()  # Or .int() if appropriate
+        paddedTest.to(self.device)
+        print(batch_in.size())
+
+        print('Testformats: ')
+        print(testFormats)
+
+        ranks = dict()
 
         with torch.no_grad():
 
-            pred = self.model(batch_in, hidden)
-            
-            #2 Options: Softmax Conditional Probabilities von rohen unnormalisierten logits 
-            #oder mit der invers korrelierten likelihood aus dem loss
-            #current_LogLikelihood = self.model.softmax(pred, dim=-1)
-            #total_neg_logLikelihood *= -math.log2(current_LogLikelihood)
-            #current_LogLikelihood = pred.loss()
-            #total_neg_logLikelihood *= current_LogLikelihood
+            output, hidden = self.model(sequenceX.cuda(), hidden)
 
-        #print(total_neg_logLikelihood)
+            # Berechne die Wahrscheinlichkeiten (optional, aber hilfreich zum Verständnis)
+            probabilities = F.softmax(output, dim=-1)
+
+            # Finde den Index des Tokens mit der höchsten Wahrscheinlichkeit
+            _, predicted_token_index = torch.max(probabilities, dim=-1)
+
+            print('Output (Logits):')
+            print(output)
+            print('Wahrscheinlichkeiten:')
+            print(probabilities.size())
+            print(probabilities)
+            print('Index des vorhergesagten Tokens (mit höchster Wahrscheinlichkeit):')
+            print(predicted_token_index)
+
+            criterion = nn.CrossEntropyLoss()
+            loss = criterion(output.cuda(), sequenceY.cuda())
+            print('loss:')
+            print(loss)
+
+            # Korrekte Akkumulation des Losses für die Perplexitätsberechnung
+            # total_neg_logLikelihood += loss.item()
+
+            ranks[trainFormat]=loss
+
+            #Now calculating for every other format, trainingFormat should be the highest rank.
+
+            for i in range(len(testFormats)):
+
+                pass
+
+        print(total_neg_logLikelihood)
+    
     def calculateRankList(self):
 
         pass
@@ -373,7 +422,7 @@ def main():
     canary.randomGenerator()
     exposureMetric = ExposureMetric()
     #exposureMetric.train_LLM(canary.formatForTraining)
-    exposureMetric.calculatePerplexity(canary.formatForTraining)
+    exposureMetric.calculatePerplexity(canary.formatForTraining, canary.getFormats())
 
 if __name__ == "__main__":
     main()
