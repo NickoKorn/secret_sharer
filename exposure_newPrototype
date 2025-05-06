@@ -347,9 +347,43 @@ class ExposureMetric:
 
             for i in range(len(testFormats)):
 
-                pass
+                output, hidden = self.model(sequencesX[i].cuda(), hidden)
+
+                # Berechne die Wahrscheinlichkeiten (optional, aber hilfreich zum Verständnis)
+                probabilities = F.softmax(output, dim=-1)
+
+                # Finde den Index des Tokens mit der höchsten Wahrscheinlichkeit
+                _, predicted_token_index = torch.max(probabilities, dim=-1)
+
+                print('Output (Logits):')
+                print(output)
+                print('Wahrscheinlichkeiten:')
+                print(probabilities.size())
+                print(probabilities)
+                print('Index des vorhergesagten Tokens (mit höchster Wahrscheinlichkeit):')
+                print(predicted_token_index)
+
+                criterion = nn.CrossEntropyLoss()
+                loss = criterion(output.cuda(), sequencesY[i].cuda())
+                print('loss:')
+                print(loss)
+
+                # Korrekte Akkumulation des Losses für die Perplexitätsberechnung
+                # total_neg_logLikelihood += loss.item()
+
+                ranks[testFormats[i]]=loss
 
         print(total_neg_logLikelihood)
+        # Sortiere die Dictionary-Items (Key-Value-Paare) nach dem Wert
+        sortierte_items = sorted(ranks.items(), key=lambda item: item[1])
+
+        # Nimm die ersten 5 Elemente (die kleinsten)
+        top_5_kleinsten = sortierte_items[:5]
+
+        # Gib die Top 5 aus
+        print("Die Top 5 kleinsten Key-Value-Paare sind:")
+        for key, value in top_5_kleinsten:
+            print(f"Key: '{key}', Value: {value}")
     
     def calculateRankList(self):
 
