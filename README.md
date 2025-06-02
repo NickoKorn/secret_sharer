@@ -2,7 +2,7 @@
 The Secret Sharer
 
 University project about "The Secret Sharer: Evaluating and Testing
-Unintended Memorization in Neural Networks" Paper 
+Unintended Memorization in Neural Networks" Paper. It focuses on Log Perplexities of canaries and the ranks of them. Everything explained in https://arxiv.org/pdf/1802.08232. They are the inventor of the Workflow for following "Expsoure"-Metric.
 
 Should work fine for cuda GPU and x86 CPU but Macs MPS is still in progress.
 
