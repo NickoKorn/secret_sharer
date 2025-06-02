@@ -5,11 +5,11 @@ class Canaries:
     def __init__(self):
 
         self._formats = []
-        self.formatSizeList = 100
-        self.holesCounter = 4
-        self._format = "The random number is: 28126"
+        self.formatSizeList = 1000
+        self.holesCounter = 3
+        self._format = "The random number is: 281265"
         self.formatForTraining = "The random number is: 281265017"
-
+ 
     def randomGenerator(self):
 
         sequence = ""
