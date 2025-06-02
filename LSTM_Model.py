@@ -21,4 +21,3 @@ class CharLSTM(nn.Module):
         weight = next(self.parameters())
         return (weight.new_zeros(self.num_layers, batch_size, self.hidden_units).to(device),
                 weight.new_zeros(self.num_layers, batch_size, self.hidden_units).to(device))
-    
