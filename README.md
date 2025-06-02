@@ -6,7 +6,7 @@ Unintended Memorization in Neural Networks" Paper. It focuses on Log Perplexitie
 
 Should work fine for cuda GPU and x86 CPU but Macs MPS is still in progress.
 
-CPU Version should be fine for most reasons because the model is small.
+CPU Version should be fine for most reasons because the model is small. Requierements.txt worked for other well.
 
 My setup should work fine: Python3.11.10 on Linux.
 
