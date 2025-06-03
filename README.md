@@ -7,6 +7,8 @@ Should work fine for cuda GPU (Exposure_Cuda.py File) and x86 CPU but Macs MPS i
 
 CPU Version should be fine for most reasons because the model is small. Requirements.txt worked for CPU well.
 
+# CharLSTM.pth has the canary of Trainingformat inserted 10x times
+
 My setup should work fine: Python3.11.10 or higher on Linux. Unfortunately i do not have Windows tests.
 
 All credits go to the authors of https://arxiv.org/pdf/1802.08232
