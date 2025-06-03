@@ -55,8 +55,8 @@ class ExposureMetric:
             self.device = torch.device("cpu")
             print("MPS device not available, using CPU instead.")
             
-        elif torch.cuda.is_available():
-            self.device = torch.device("cuda")
+        #elif torch.cuda.is_available():
+            #self.device = torch.device("cuda")
         else:
             self.device = torch.device("cpu")
             print("CUDA device not available, using CPU instead.")
