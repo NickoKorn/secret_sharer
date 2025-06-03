@@ -49,11 +49,12 @@ class ExposureMetric:
     def chooseDevice(self):
 
         if platform.system() == "Darwin":
-            if torch.backends.mps.is_available():
-                self.device = torch.device("mps")
-            else:
-                self.device = torch.device("cpu")
-                print("MPS device not available, using CPU instead.")
+            #if torch.backends.mps.is_available():
+            #    self.device = torch.device("mps")
+            #else:
+            self.device = torch.device("cpu")
+            print("MPS device not available, using CPU instead.")
+            
         elif torch.cuda.is_available():
             self.device = torch.device("cuda")
         else:
