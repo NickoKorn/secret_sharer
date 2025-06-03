@@ -10,3 +10,9 @@ CPU Version should be fine for most reasons because the model is small. Requirem
 My setup should work fine: Python3.11.10 or higher on Linux. Unfortunately i do not have Windows tests.
 
 All credits go to the authors of https://arxiv.org/pdf/1802.08232
+
+Additional ToDos: 
+
+-Pipeline class for different canaries 
+
+-approximating of exposure metric for it.
