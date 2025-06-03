@@ -15,4 +15,4 @@ Additional ToDos:
 
 -Pipeline class for different canaries 
 
--approximating of exposure metric for it.
+-approximating of exposure metric
